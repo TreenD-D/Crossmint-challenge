@@ -247,48 +247,160 @@ class MegaverseSdk(
     /**
      * Solves the challenge by creating all objects according to the goal map.
      * This is a high-level operation that handles the entire challenge automatically.
-     * Uses parallel requests for maximum performance.
+     * Creates objects in the correct order: POLYanets first, then SOLoons, then COMETHs.
      *
      * @return Flow emitting progress updates for the entire challenge
      */
-    suspend fun solveChallenge(): Flow<CreationProgress> {
+    suspend fun solveChallenge(): Flow<CreationProgress> = kotlinx.coroutines.flow.flow {
         MegaverseLogger.logOperation("solveChallenge", "Starting automatic challenge solution")
 
         val goalMapResult = getGoalMap()
 
-        return when (goalMapResult) {
+        when (goalMapResult) {
             is MegaverseResult.Success -> {
                 val map = goalMapResult.data
-                val allObjects = mutableListOf<AstralObject>()
 
-                // Add all polyanets
+                // Separate objects by type for ordered creation
                 val polyanetPositions = map.getPolyanetPositions()
-                allObjects.addAll(polyanetPositions.toPolyanets())
+                val soloonsByColor = map.getSoloonPositions()
+                val comethsByDirection = map.getComethPositions()
+
+                val polyanets = polyanetPositions.toPolyanets()
+                val soloons =
+                    soloonsByColor.flatMap { (color, positions) -> positions.toSoloons(color) }
+                val comeths = comethsByDirection.flatMap { (direction, positions) ->
+                    positions.toComeths(direction)
+                }
+
+                val totalObjects = polyanets.size + soloons.size + comeths.size
+                var completedObjects = 0
+
+                MegaverseLogger.info("MegaverseSdk", "Found ${polyanets.size} polyanets to create")
+                MegaverseLogger.info("MegaverseSdk", "Found ${soloons.size} soloons to create")
+                MegaverseLogger.info("MegaverseSdk", "Found ${comeths.size} comeths to create")
+                MegaverseLogger.info("MegaverseSdk", "Total objects to create: $totalObjects")
+
+                emit(CreationProgress.InProgress(0, totalObjects))
+
+                // Phase 1: Create all POLYanets first
+                if (polyanets.isNotEmpty()) {
+                    MegaverseLogger.info(
+                        "MegaverseSdk",
+                        "Phase 1: Creating ${polyanets.size} POLYanets..."
+                    )
+
+                    repository.createAstralObjects(polyanets).collect { progress ->
+                        when (progress) {
+                            is CreationProgress.InProgress -> {
+                                emit(
+                                    CreationProgress.InProgress(
+                                        completedObjects + progress.completed,
+                                        totalObjects
+                                    )
+                                )
+                            }
+
+                            is CreationProgress.ObjectCreated -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.ObjectFailed -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.Completed -> {
+                                completedObjects += progress.successful
+                                MegaverseLogger.info(
+                                    "MegaverseSdk",
+                                    "Phase 1 complete: ${progress.successful} POLYanets created, ${progress.failed} failed"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Phase 2: Create all SOLoons (now that POLYanets exist)
+                if (soloons.isNotEmpty()) {
+                    MegaverseLogger.info(
+                        "MegaverseSdk",
+                        "Phase 2: Creating ${soloons.size} SOLoons..."
+                    )
+
+                    repository.createAstralObjects(soloons).collect { progress ->
+                        when (progress) {
+                            is CreationProgress.InProgress -> {
+                                emit(
+                                    CreationProgress.InProgress(
+                                        completedObjects + progress.completed,
+                                        totalObjects
+                                    )
+                                )
+                            }
+
+                            is CreationProgress.ObjectCreated -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.ObjectFailed -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.Completed -> {
+                                completedObjects += progress.successful
+                                MegaverseLogger.info(
+                                    "MegaverseSdk",
+                                    "Phase 2 complete: ${progress.successful} SOLoons created, ${progress.failed} failed"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Phase 3: Create all COMETHs (independent of other objects)
+                if (comeths.isNotEmpty()) {
+                    MegaverseLogger.info(
+                        "MegaverseSdk",
+                        "Phase 3: Creating ${comeths.size} COMETHs..."
+                    )
+
+                    repository.createAstralObjects(comeths).collect { progress ->
+                        when (progress) {
+                            is CreationProgress.InProgress -> {
+                                emit(
+                                    CreationProgress.InProgress(
+                                        completedObjects + progress.completed,
+                                        totalObjects
+                                    )
+                                )
+                            }
+
+                            is CreationProgress.ObjectCreated -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.ObjectFailed -> {
+                                emit(progress)
+                            }
+
+                            is CreationProgress.Completed -> {
+                                completedObjects += progress.successful
+                                MegaverseLogger.info(
+                                    "MegaverseSdk",
+                                    "Phase 3 complete: ${progress.successful} COMETHs created, ${progress.failed} failed"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val totalSuccessful = completedObjects
+                val totalFailed = totalObjects - completedObjects
+
                 MegaverseLogger.info(
                     "MegaverseSdk",
-                    "Found ${polyanetPositions.size} polyanets to create"
+                    "Challenge solving completed! Total successful: $totalSuccessful, Total failed: $totalFailed"
                 )
-
-                // Add all soloons
-                map.getSoloonPositions().forEach { (color, positions) ->
-                    allObjects.addAll(positions.toSoloons(color))
-                    MegaverseLogger.info(
-                        "MegaverseSdk",
-                        "Found ${positions.size} ${color.name.lowercase()} soloons to create"
-                    )
-                }
-
-                // Add all comeths
-                map.getComethPositions().forEach { (direction, positions) ->
-                    allObjects.addAll(positions.toComeths(direction))
-                    MegaverseLogger.info(
-                        "MegaverseSdk",
-                        "Found ${positions.size} ${direction.name.lowercase()}-facing comeths to create"
-                    )
-                }
-
-                MegaverseLogger.info("MegaverseSdk", "Total objects to create: ${allObjects.size}")
-                repository.createAstralObjects(allObjects)
+                emit(CreationProgress.Completed(totalSuccessful, totalFailed))
             }
 
             is MegaverseResult.Error -> {
@@ -297,9 +409,7 @@ class MegaverseSdk(
                     "Failed to get goal map for challenge solving",
                     goalMapResult.exception
                 )
-                kotlinx.coroutines.flow.flow {
-                    emit(CreationProgress.Completed(0, 1))
-                }
+                emit(CreationProgress.Completed(0, 1))
             }
         }
     }
