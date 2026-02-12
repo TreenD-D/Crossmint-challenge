@@ -1,5 +1,9 @@
 # Crossmint Megaverse SDK
 
+[![CI](https://github.com/achulkov/crossmint-challenge/actions/workflows/ci.yml/badge.svg)](https://github.com/achulkov/crossmint-challenge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
+
 A production-grade, robust Kotlin Multiplatform library for interacting with the Crossmint Megaverse API. This SDK provides a clean, type-safe interface for creating and managing astral objects in the megaverse challenge.
 
 ##  Features
@@ -73,14 +77,54 @@ The SDK follows clean architecture principles with clear separation of concerns:
 
 ## 📦 Installation
 
-Add the library to your project:
+### GitHub Packages
+
+This library is published to GitHub Packages on every push to `main` and on tagged releases.
+
+**Step 1:** Add the GitHub Packages repository to your `settings.gradle.kts`:
 
 ```kotlin
-// build.gradle.kts
-dependencies {
-    implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0")
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/achulkov/crossmint-challenge")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+        mavenCentral()
+        google()
+    }
 }
 ```
+
+**Step 2:** Add your GitHub credentials to `~/.gradle/gradle.properties`:
+
+```properties
+gpr.user=your-github-username
+gpr.token=your-github-personal-access-token
+```
+
+> **Note:** Generate a GitHub Personal Access Token with `read:packages` scope at:
+> https://github.com/settings/tokens
+
+**Step 3:** Add the library dependency to your `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    // For release versions (when tagged as v1.0.0, v1.0.1, etc.)
+    implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0")
+    
+    // For snapshot versions (latest from main branch)
+    implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0-SNAPSHOT")
+}
+```
+
+### Maven Central (Planned)
+
+Publishing to Maven Central is configured and will be available in future releases.
 
 ## 🚀 Quick Start
 
@@ -316,17 +360,11 @@ src/commonTest/                        # 84 tests
 
 ## 🔧 Code Quality
 
-The project uses Detekt and ktlint for code quality:
+The project uses Detekt for code quality:
 
 ```bash
 # Run Detekt analysis
 ./gradlew detekt
-
-# Run ktlint check
-./gradlew ktlintCheck
-
-# Auto-fix ktlint issues
-./gradlew ktlintFormat
 ```
 
 Configuration is in `detekt.yml` at the project root.
@@ -335,17 +373,38 @@ Configuration is in `detekt.yml` at the project root.
 
 GitHub Actions workflows are configured for:
 
-- **Continuous Integration**: Runs on every PR
-  - Code quality checks (Detekt, ktlint)
-  - Unit tests across multiple platforms
-  - Coverage reporting
-  - Build verification
+- **Continuous Integration**: Runs on every push and PR
+  - **Code Quality**: Detekt static analysis with report artifacts
+  - **Unit Tests**: Tests across multiple API levels (21, 29, 34) with JUnit reports
+  - **Coverage**: Kover code coverage with Codecov integration
+  - **Build Verification**: Validates library and sample app builds
+  - **Documentation**: Auto-generates Dokka HTML documentation
 
-- **Documentation**: Auto-generates Dokka documentation
+- **Publishing to GitHub Packages**: Automatic on push to `main`
+  - **Snapshot versions** (`1.0.0-SNAPSHOT`) published on every push to `main`
+  - **Release versions** (e.g., `1.0.0`) published when tagged with `v*` tags
+  - Artifacts include JARs and AARs for all supported platforms
+  - Release artifacts automatically uploaded for tagged releases
 
-- **Publishing**: Publishes to Maven Central on release
+- **Future**: Publishing to Maven Central is configured and ready
 
-See `.github/workflows/ci.yml` for details.
+### Creating a Release
+
+To publish a new release version:
+
+```bash
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The CI will automatically:
+1. Build and test the library
+2. Publish to GitHub Packages with the version from the tag
+3. Create release artifacts (JARs, AARs)
+4. Upload artifacts to the GitHub Actions run
+
+See `.github/workflows/ci.yml` for complete CI/CD configuration.
 
 ## 🏛️ Design Principles
 

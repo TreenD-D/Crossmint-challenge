@@ -177,9 +177,11 @@ kover {
 }
 
 // Publishing configuration
+val libraryVersion = project.findProperty("VERSION") as String? ?: "1.0.0"
+
 mavenPublishing {
     publishToMavenCentral()
-    coordinates("com.achulkov.challenge", "crossmint-challenge-lib", "1.0.0")
+    coordinates("com.achulkov.challenge", "crossmint-challenge-lib", libraryVersion)
 
     pom {
         name.set("Crossmint Megaverse SDK")
@@ -209,4 +211,18 @@ mavenPublishing {
     }
 
     if (project.hasProperty("signing.keyId")) signAllPublications()
+}
+
+// GitHub Packages publishing
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/achulkov/crossmint-challenge")
+            credentials {
+                username = project.findProperty("githubPackagesUsername") as String? ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("githubPackagesPassword") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
