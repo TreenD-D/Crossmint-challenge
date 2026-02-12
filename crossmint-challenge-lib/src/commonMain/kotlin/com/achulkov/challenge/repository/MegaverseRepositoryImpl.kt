@@ -4,44 +4,54 @@ import com.achulkov.challenge.config.MegaverseConfig
 import com.achulkov.challenge.domain.*
 import com.achulkov.challenge.network.MegaverseApi
 import com.achulkov.challenge.utils.MegaverseLogger
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.Clock
 
 /**
- * Implementation of MegaverseRepository.
+ * Implementation of MegaverseRepository with resilience patterns.
+ *
+ * This repository provides:
+ * - Exponential backoff retry with jitter
+ * - Circuit breaker pattern for fault tolerance
+ * - Rate limiting with token bucket algorithm
+ * - Comprehensive progress tracking for bulk operations
  *
  * @param api The API client for network operations
  * @param config The configuration manager
- * @param delayBetweenRequests Delay in milliseconds between API requests to avoid rate limiting
+ * @param resilientExecutor Optional custom resilient executor
  */
 class MegaverseRepositoryImpl(
     private val api: MegaverseApi,
     private val config: MegaverseConfig,
-    private val delayBetweenRequests: Long = 500L
+    private val resilientExecutor: ResilientApiExecutor = ResilientApiExecutor(config)
 ) : MegaverseRepository {
 
     init {
         MegaverseLogger.info(
             "MegaverseRepository",
-            "Initialized with ${delayBetweenRequests}ms delay between requests"
+            "Initialized with resilience patterns: " +
+                "maxRetries=${config.getMaxRetries()}, " +
+                "baseDelay=${config.getRetryBaseDelayMs()}ms"
         )
     }
 
     override suspend fun createPolyanet(polyanet: Polyanet): MegaverseResult<Unit> {
         MegaverseLogger.debug("Repository", "Creating polyanet at ${polyanet.position}")
         config.validateConfiguration()
-        val result = api.createPolyanet(polyanet.position, config.getCandidateId()!!)
-        logOperationResult("createPolyanet", polyanet.position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("createPolyanet") {
+            api.createPolyanet(polyanet.position, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun deletePolyanet(position: Position): MegaverseResult<Unit> {
         MegaverseLogger.debug("Repository", "Deleting polyanet at $position")
         config.validateConfiguration()
-        val result = api.deletePolyanet(position, config.getCandidateId()!!)
-        logOperationResult("deletePolyanet", position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("deletePolyanet") {
+            api.deletePolyanet(position, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun createSoloon(soloon: Soloon): MegaverseResult<Unit> {
@@ -50,17 +60,19 @@ class MegaverseRepositoryImpl(
             "Creating ${soloon.color.value} soloon at ${soloon.position}"
         )
         config.validateConfiguration()
-        val result = api.createSoloon(soloon.position, soloon.color, config.getCandidateId()!!)
-        logOperationResult("createSoloon", soloon.position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("createSoloon") {
+            api.createSoloon(soloon.position, soloon.color, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun deleteSoloon(position: Position): MegaverseResult<Unit> {
         MegaverseLogger.debug("Repository", "Deleting soloon at $position")
         config.validateConfiguration()
-        val result = api.deleteSoloon(position, config.getCandidateId()!!)
-        logOperationResult("deleteSoloon", position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("deleteSoloon") {
+            api.deleteSoloon(position, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun createCometh(cometh: Cometh): MegaverseResult<Unit> {
@@ -69,48 +81,40 @@ class MegaverseRepositoryImpl(
             "Creating ${cometh.direction.value}-facing cometh at ${cometh.position}"
         )
         config.validateConfiguration()
-        val result = api.createCometh(cometh.position, cometh.direction, config.getCandidateId()!!)
-        logOperationResult("createCometh", cometh.position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("createCometh") {
+            api.createCometh(cometh.position, cometh.direction, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun deleteCometh(position: Position): MegaverseResult<Unit> {
         MegaverseLogger.debug("Repository", "Deleting cometh at $position")
         config.validateConfiguration()
-        val result = api.deleteCometh(position, config.getCandidateId()!!)
-        logOperationResult("deleteCometh", position, result)
-        return result
+
+        return resilientExecutor.executeWithResilience("deleteCometh") {
+            api.deleteCometh(position, config.getCandidateId()!!)
+        }
     }
 
     override suspend fun getGoalMap(): MegaverseResult<MegaverseMap> {
         MegaverseLogger.debug("Repository", "Fetching goal map")
         config.validateConfiguration()
-        val result = api.getGoalMap(config.getCandidateId()!!)
-        when (result) {
-            is MegaverseResult.Success -> {
-                MegaverseLogger.info(
-                    "Repository",
-                    "Goal map retrieved successfully with dimensions ${result.data.dimensions}"
-                )
-            }
 
-            is MegaverseResult.Error -> {
-                MegaverseLogger.error("Repository", "Failed to get goal map", result.exception)
-            }
+        return resilientExecutor.executeWithResilience("getGoalMap") {
+            api.getGoalMap(config.getCandidateId()!!)
         }
-        return result
     }
 
     override fun createAstralObjects(objects: List<AstralObject>): Flow<CreationProgress> = flow {
         MegaverseLogger.logOperation(
             "createAstralObjects",
-            "Starting bulk creation of ${objects.size} objects"
+            "Starting bulk creation of ${objects.size} objects with resilience"
         )
 
         var successful = 0
         var failed = 0
         val total = objects.size
-        val startTime = System.currentTimeMillis()
+        val startTime = Clock.System.now().toEpochMilliseconds()
 
         emit(CreationProgress.InProgress(0, total))
 
@@ -162,18 +166,9 @@ class MegaverseRepositoryImpl(
             }
 
             emit(CreationProgress.InProgress(index + 1, total))
-
-            // Add delay to avoid rate limiting, except for the last request
-            if (index < objects.lastIndex) {
-                MegaverseLogger.debug(
-                    "Repository",
-                    "Applying ${delayBetweenRequests}ms delay before next request"
-                )
-                delay(delayBetweenRequests)
-            }
         }
 
-        val duration = System.currentTimeMillis() - startTime
+        val duration = Clock.System.now().toEpochMilliseconds() - startTime
         MegaverseLogger.logOperation(
             "createAstralObjects",
             "Completed in ${duration}ms. Successful: $successful, Failed: $failed"
@@ -184,13 +179,13 @@ class MegaverseRepositoryImpl(
     override fun clearPositions(positions: List<Position>): Flow<DeletionProgress> = flow {
         MegaverseLogger.logOperation(
             "clearPositions",
-            "Starting bulk deletion of ${positions.size} positions"
+            "Starting bulk deletion of ${positions.size} positions with resilience"
         )
 
         var successful = 0
         var failed = 0
         val total = positions.size
-        val startTime = System.currentTimeMillis()
+        val startTime = Clock.System.now().toEpochMilliseconds()
 
         emit(DeletionProgress.InProgress(0, total))
 
@@ -202,7 +197,6 @@ class MegaverseRepositoryImpl(
                 )
 
                 // Try deleting each type of object at the position
-                // In a real scenario, we might want to know what type of object is at each position
                 var deleted = false
 
                 // Try polyanet first
@@ -299,44 +293,13 @@ class MegaverseRepositoryImpl(
             }
 
             emit(DeletionProgress.InProgress(index + 1, total))
-
-            // Add delay to avoid rate limiting, except for the last request
-            if (index < positions.lastIndex) {
-                MegaverseLogger.debug(
-                    "Repository",
-                    "Applying ${delayBetweenRequests}ms delay before next request"
-                )
-                delay(delayBetweenRequests)
-            }
         }
 
-        val duration = System.currentTimeMillis() - startTime
+        val duration = Clock.System.now().toEpochMilliseconds() - startTime
         MegaverseLogger.logOperation(
             "clearPositions",
             "Completed in ${duration}ms. Successful: $successful, Failed: $failed"
         )
         emit(DeletionProgress.Completed(successful, failed))
-    }
-
-    /**
-     * Helper function to log operation results.
-     */
-    private fun logOperationResult(
-        operation: String,
-        position: Position,
-        result: MegaverseResult<Unit>
-    ) {
-        when (result) {
-            is MegaverseResult.Success -> {
-                MegaverseLogger.debug("Repository", "$operation at $position successful")
-            }
-
-            is MegaverseResult.Error -> {
-                MegaverseLogger.warn(
-                    "Repository",
-                    "$operation at $position failed: ${result.exception.message}"
-                )
-            }
-        }
     }
 }

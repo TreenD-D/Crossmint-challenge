@@ -27,6 +27,7 @@ class MegaverseApiImpl(
 ) : MegaverseApi {
 
     private val client = httpClient ?: HttpClient {
+        expectSuccess = true
         install(HttpRedirect) {
             checkHttpMethod = false
         }

@@ -157,11 +157,15 @@ fun Position.manhattanDistanceTo(other: Position): Int {
  * @return List of adjacent positions within bounds
  */
 fun Position.getAdjacentPositions(width: Int, height: Int): List<Position> {
-    val adjacent = listOf(
-        Position(row - 1, column), // Up
-        Position(row + 1, column), // Down
-        Position(row, column - 1), // Left
-        Position(row, column + 1)  // Right
-    )
-    return adjacent.filterWithinBounds(width, height)
+    val adjacent = buildList {
+        // Up
+        if (row > 0) add(Position(row - 1, column))
+        // Down
+        if (row < height - 1) add(Position(row + 1, column))
+        // Left
+        if (column > 0) add(Position(row, column - 1))
+        // Right
+        if (column < width - 1) add(Position(row, column + 1))
+    }
+    return adjacent
 }

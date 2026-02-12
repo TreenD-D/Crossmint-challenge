@@ -6,4 +6,11 @@ plugins {
     alias(libs.plugins.compose.compiler).apply(false)
     alias(libs.plugins.kotlinx.serialization).apply(false)
     alias(libs.plugins.android.application).apply(false)
+    alias(libs.plugins.detekt).apply(false)
+    alias(libs.plugins.kover).apply(false)
+}
+
+allprojects {
+    group = "com.achulkov.challenge"
+    version = "1.0.0"
 }
