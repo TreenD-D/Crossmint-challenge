@@ -259,7 +259,7 @@ jobs:
         run: ./gradlew :crossmint-challenge-lib:koverXmlReport --no-daemon
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./crossmint-challenge-lib/build/reports/kover/report.xml
           flags: unittests
