@@ -47,7 +47,7 @@ jobs:
 
       - name: Upload Detekt Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: detekt-reports
           path: '**/build/reports/detekt/'
@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload JVM Test Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports-jvm
           path: '**/build/test-results/jvmTest/**/*.xml'
@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload iOS Test Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports-ios
           path: '**/build/test-results/iosSimulatorArm64Test/**/*.xml'
@@ -149,7 +149,7 @@ jobs:
 
       - name: Upload macOS Test Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports-macos
           path: '**/build/test-results/macosArm64Test/**/*.xml'
@@ -234,7 +234,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Coverage Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-reports
           path: '**/build/reports/kover/'
@@ -265,7 +265,7 @@ jobs:
         run: ./gradlew :crossmint-challenge-lib:dokkaHtml --no-daemon
 
       - name: Upload Documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: documentation
           path: crossmint-challenge-lib/build/dokka/html/
@@ -323,7 +323,7 @@ jobs:
 
       - name: Upload Security Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-reports
           path: '**/build/reports/dependency-check-report.html'
@@ -387,7 +387,7 @@ jobs:
 
       - name: Upload Release Artifacts
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-artifacts-${{ steps.version.outputs.version }}
           path: release-artifacts/
