@@ -3,12 +3,18 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main, develop]
 
 env:
   JAVA_VERSION: '17'
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Code quality checks
@@ -18,12 +24,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -42,14 +51,12 @@ jobs:
         with:
           name: detekt-reports
           path: '**/build/reports/detekt/'
+          retention-days: 7
 
-  # Unit tests
-  test:
-    name: Unit Tests
+  # Unit tests - Common Module
+  test-common:
+    name: Common Module Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        api-level: [21, 29, 34]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,6 +66,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -69,21 +77,20 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Common Tests
-        run: ./gradlew :crossmint-challenge-lib:commonTest --info
+        run: ./gradlew :crossmint-challenge-lib:allTests --info
 
-      - name: Generate Test Report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: Test Results (API ${{ matrix.api-level }})
+          name: test-reports-common
           path: '**/build/test-results/**/*.xml'
-          reporter: java-junit
+          retention-days: 7
 
-  # Build verification
-  build:
-    name: Build Verification
+  # Unit tests - JVM
+  test-jvm:
+    name: JVM Tests
     runs-on: ubuntu-latest
-    needs: [lint, test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -93,6 +100,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -102,6 +110,114 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Run JVM Tests
+        run: ./gradlew :crossmint-challenge-lib:jvmTest --info
+
+      - name: Upload JVM Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-jvm
+          path: '**/build/test-results/jvmTest/**/*.xml'
+          retention-days: 7
+
+  # Unit tests - iOS Simulator
+  test-ios:
+    name: iOS Tests
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run iOS Simulator Tests
+        run: ./gradlew :crossmint-challenge-lib:iosSimulatorArm64Test --info
+
+      - name: Upload iOS Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-ios
+          path: '**/build/test-results/iosSimulatorArm64Test/**/*.xml'
+          retention-days: 7
+
+  # Unit tests - macOS
+  test-macos:
+    name: macOS Tests
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run macOS Tests
+        run: ./gradlew :crossmint-challenge-lib:macosArm64Test --info
+
+      - name: Upload macOS Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-macos
+          path: '**/build/test-results/macosArm64Test/**/*.xml'
+          retention-days: 7
+
+  # Build verification
+  build:
+    name: Build All Targets
+    runs-on: ${{ matrix.os }}
+    needs: [lint, test-common]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Grant execute permission for gradlew (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
+
       - name: Build Library
         run: ./gradlew :crossmint-challenge-lib:assemble --no-daemon
 
@@ -109,6 +225,7 @@ jobs:
         run: ./gradlew :sample:composeApp:assemble --no-daemon
 
       - name: Verify No Uncommitted Changes
+        if: runner.os != 'Windows'
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             echo "Error: Uncommitted changes detected after build"
@@ -120,7 +237,7 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test-common, test-jvm]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -130,6 +247,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -146,6 +264,15 @@ jobs:
           files: ./crossmint-challenge-lib/build/reports/kover/report.xml
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: '**/build/reports/kover/'
+          retention-days: 7
 
   # Documentation build
   docs:
@@ -160,6 +287,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -175,12 +303,71 @@ jobs:
         with:
           name: documentation
           path: crossmint-challenge-lib/build/dokka/html/
+          retention-days: 30
+
+  # Deploy documentation to GitHub Pages
+  docs-deploy:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: docs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
+
+  # Dependency vulnerability scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run dependency check
+        run: ./gradlew dependencyCheckAnalyze || true
+        continue-on-error: true
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: '**/build/reports/dependency-check-report.html'
+          retention-days: 7
 
   # Publish to GitHub Packages
   publish:
     name: Publish to GitHub Packages
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, test-common, test-jvm, build]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: read
@@ -194,6 +381,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -237,3 +425,37 @@ jobs:
         with:
           name: release-artifacts-${{ steps.version.outputs.version }}
           path: release-artifacts/
+          retention-days: 90
+
+  # Create GitHub Release
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts-${{ steps.version.outputs.version }}
+          path: release-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

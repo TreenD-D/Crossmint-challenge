@@ -1,42 +1,63 @@
 package com.achulkov.challenge
 
-import com.achulkov.challenge.config.MegaverseConfig
 import com.achulkov.challenge.domain.*
+import com.achulkov.challenge.domain.interfaces.IConfiguration
+import com.achulkov.challenge.domain.interfaces.ILogger
+import com.achulkov.challenge.domain.state.MegaverseStateManager
+import com.achulkov.challenge.domain.usecases.ClearPositionsUseCase
+import com.achulkov.challenge.domain.usecases.CreateAstralObjectsUseCase
+import com.achulkov.challenge.domain.usecases.GetGoalMapUseCase
+import com.achulkov.challenge.domain.usecases.SolveChallengeUseCase
 import com.achulkov.challenge.extensions.*
-import com.achulkov.challenge.network.MegaverseApi
-import com.achulkov.challenge.network.MegaverseApiImpl
 import com.achulkov.challenge.repository.CreationProgress
 import com.achulkov.challenge.repository.DeletionProgress
 import com.achulkov.challenge.repository.MegaverseRepository
-import com.achulkov.challenge.repository.MegaverseRepositoryImpl
-import com.achulkov.challenge.utils.MegaverseLogger
-import io.ktor.client.*
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Main SDK class for interacting with the Megaverse API.
- * Provides a high-level, easy-to-use interface for all Megaverse operations.
+ * Production-grade SDK for interacting with the Megaverse API.
  *
- * @param config Optional custom configuration, if null a default will be created
- * @param httpClient Optional custom HTTP client, if null a default will be created
- * @param enableDebugLogging Whether to enable debug logging (should be true only in debug builds)
+ *
+ * ## Usage with Koin (Recommended):
+ * ```kotlin
+ * // Initialize Koin once at app startup
+ * KoinInitializer.init()
+ * 
+ * // Get SDK instance from Koin
+ * val sdk: MegaverseSdk by inject()
+ * 
+ * // Or create manually with injected dependencies
+ * val sdk = MegaverseSdk(
+ *     configuration = get(),
+ *     logger = get(),
+ *     repository = get(),
+ *     // ... other dependencies
+ * )
+ * ```
+ *
+ * @param configuration Configuration provider for API settings
+ * @param logger Logger for tracking operations
+ * @param repository Repository for Megaverse operations
+ * @param createAstralObjectsUseCase Use case for creating astral objects
+ * @param getGoalMapUseCase Use case for fetching goal map
+ * @param clearPositionsUseCase Use case for clearing positions
+ * @param solveChallengeUseCase Use case for solving the challenge
+ * @param stateManager Optional state manager for reactive state management
  */
 class MegaverseSdk(
-    private val config: MegaverseConfig = MegaverseConfig(),
-    httpClient: HttpClient? = null,
-    enableDebugLogging: Boolean = false
+    private val configuration: IConfiguration,
+    private val logger: ILogger,
+    private val repository: MegaverseRepository,
+    private val createAstralObjectsUseCase: CreateAstralObjectsUseCase,
+    private val getGoalMapUseCase: GetGoalMapUseCase,
+    private val clearPositionsUseCase: ClearPositionsUseCase,
+    private val solveChallengeUseCase: SolveChallengeUseCase,
+    private val stateManager: MegaverseStateManager? = null
 ) {
 
-    private val api: MegaverseApi = MegaverseApiImpl(config.getBaseUrl(), httpClient)
-    private val repository: MegaverseRepository = MegaverseRepositoryImpl(api, config)
-
     init {
-        // Enable debug logging if requested
-        MegaverseLogger.setDebugEnabled(enableDebugLogging)
-
-        MegaverseLogger.info("MegaverseSdk", "SDK initialized")
-        MegaverseLogger.debug("MegaverseSdk", "Debug logging enabled: $enableDebugLogging")
-        MegaverseLogger.debug("MegaverseSdk", "Base URL: ${config.getBaseUrl()}")
+        logger.info("MegaverseSdk", "SDK initialized")
+        logger.debug("MegaverseSdk", "Base URL: ${configuration.getBaseUrl()}")
     }
 
     /**
@@ -46,8 +67,8 @@ class MegaverseSdk(
      * @param enabled Whether to enable debug logging
      */
     fun setDebugLogging(enabled: Boolean) {
-        MegaverseLogger.setDebugEnabled(enabled)
-        MegaverseLogger.info(
+        logger.setDebugEnabled(enabled)
+        logger.info(
             "MegaverseSdk",
             "Debug logging ${if (enabled) "enabled" else "disabled"}"
         )
@@ -60,8 +81,8 @@ class MegaverseSdk(
      * @param candidateId Your unique candidate identifier
      */
     fun setCandidateId(candidateId: String) {
-        MegaverseLogger.logOperation("setCandidateId", "Setting candidate ID")
-        config.setCandidateId(candidateId)
+        logger.logOperation("setCandidateId", "Setting candidate ID")
+        configuration.setCandidateId(candidateId)
     }
 
     /**
@@ -70,10 +91,11 @@ class MegaverseSdk(
      * @return The candidate ID, or null if not set
      */
     fun getCandidateId(): String? {
-        val candidateId = config.getCandidateId()
-        MegaverseLogger.debug(
+        val candidateId = configuration.getCandidateId()
+        logger.debug(
             "MegaverseSdk",
-            "Retrieved candidate ID: ${candidateId?.let { "****" } ?: "null"}")
+            "Retrieved candidate ID: ${candidateId?.let { "****" } ?: "null"}"
+        )
         return candidateId
     }
 
@@ -83,8 +105,8 @@ class MegaverseSdk(
      * @param baseUrl The base URL to use
      */
     fun setBaseUrl(baseUrl: String) {
-        MegaverseLogger.logOperation("setBaseUrl", "Setting custom base URL: $baseUrl")
-        config.setBaseUrl(baseUrl)
+        logger.logOperation("setBaseUrl", "Setting custom base URL: $baseUrl")
+        configuration.setBaseUrl(baseUrl)
     }
 
     // Individual object operations
@@ -96,7 +118,7 @@ class MegaverseSdk(
      * @return Result indicating success or failure
      */
     suspend fun createPolyanet(position: Position): MegaverseResult<Unit> {
-        MegaverseLogger.logOperation("createPolyanet", "Creating polyanet at $position")
+        logger.logOperation("createPolyanet", "Creating polyanet at $position")
         return repository.createPolyanet(Polyanet(position))
     }
 
@@ -108,7 +130,7 @@ class MegaverseSdk(
      * @return Result indicating success or failure
      */
     suspend fun createSoloon(position: Position, color: SoloonColor): MegaverseResult<Unit> {
-        MegaverseLogger.logOperation("createSoloon", "Creating ${color.value} soloon at $position")
+        logger.logOperation("createSoloon", "Creating ${color.value} soloon at $position")
         return repository.createSoloon(Soloon(position, color))
     }
 
@@ -123,7 +145,7 @@ class MegaverseSdk(
         position: Position,
         direction: ComethDirection
     ): MegaverseResult<Unit> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "createCometh",
             "Creating ${direction.value}-facing cometh at $position"
         )
@@ -137,8 +159,8 @@ class MegaverseSdk(
      * @return Flow emitting deletion progress
      */
     fun clearPosition(position: Position): Flow<DeletionProgress> {
-        MegaverseLogger.logOperation("clearPosition", "Clearing position $position")
-        return repository.clearPositions(listOf(position))
+        logger.logOperation("clearPosition", "Clearing position $position")
+        return clearPositionsUseCase(listOf(position))
     }
 
     // Bulk operations
@@ -150,11 +172,11 @@ class MegaverseSdk(
      * @return Flow emitting progress updates
      */
     fun createAstralObjects(objects: List<AstralObject>): Flow<CreationProgress> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "createAstralObjects",
             "Creating ${objects.size} astral objects"
         )
-        return repository.createAstralObjects(objects)
+        return createAstralObjectsUseCase(objects)
     }
 
     /**
@@ -164,8 +186,8 @@ class MegaverseSdk(
      * @return Flow emitting progress updates
      */
     fun clearPositions(positions: List<Position>): Flow<DeletionProgress> {
-        MegaverseLogger.logOperation("clearPositions", "Clearing ${positions.size} positions")
-        return repository.clearPositions(positions)
+        logger.logOperation("clearPositions", "Clearing ${positions.size} positions")
+        return clearPositionsUseCase(positions)
     }
 
     // Pattern-based operations
@@ -177,13 +199,13 @@ class MegaverseSdk(
      * @return Flow emitting creation progress
      */
     fun createXPatternChallenge(size: Int = 11): Flow<CreationProgress> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "createXPatternChallenge",
             "Creating X-pattern for ${size}x${size} grid"
         )
         val polyanets = createXPatternPolyanets(size)
-        MegaverseLogger.info("MegaverseSdk", "X-pattern will create ${polyanets.size} polyanets")
-        return repository.createAstralObjects(polyanets)
+        logger.info("MegaverseSdk", "X-pattern will create ${polyanets.size} polyanets")
+        return createAstralObjectsUseCase(polyanets)
     }
 
     /**
@@ -199,14 +221,14 @@ class MegaverseSdk(
         height: Int,
         objectCreator: (Position) -> AstralObject
     ): Flow<CreationProgress> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "createBorderPattern",
             "Creating border pattern for ${width}x${height} grid"
         )
         val positions = createBorderPattern(width, height)
         val objects = positions.map(objectCreator)
-        MegaverseLogger.info("MegaverseSdk", "Border pattern will create ${objects.size} objects")
-        return repository.createAstralObjects(objects)
+        logger.info("MegaverseSdk", "Border pattern will create ${objects.size} objects")
+        return createAstralObjectsUseCase(objects)
     }
 
     /**
@@ -222,14 +244,14 @@ class MegaverseSdk(
         height: Int,
         objectCreator: (Position) -> AstralObject
     ): Flow<CreationProgress> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "createPlusPattern",
             "Creating plus pattern for ${width}x${height} grid"
         )
         val positions = createPlusPattern(width, height)
         val objects = positions.map(objectCreator)
-        MegaverseLogger.info("MegaverseSdk", "Plus pattern will create ${objects.size} objects")
-        return repository.createAstralObjects(objects)
+        logger.info("MegaverseSdk", "Plus pattern will create ${objects.size} objects")
+        return createAstralObjectsUseCase(objects)
     }
 
     // Map operations
@@ -240,8 +262,8 @@ class MegaverseSdk(
      * @return Result containing the goal map or an error
      */
     suspend fun getGoalMap(): MegaverseResult<MegaverseMap> {
-        MegaverseLogger.logOperation("getGoalMap", "Fetching goal map")
-        return repository.getGoalMap()
+        logger.logOperation("getGoalMap", "Fetching goal map")
+        return getGoalMapUseCase()
     }
 
     /**
@@ -251,167 +273,9 @@ class MegaverseSdk(
      *
      * @return Flow emitting progress updates for the entire challenge
      */
-    suspend fun solveChallenge(): Flow<CreationProgress> = kotlinx.coroutines.flow.flow {
-        MegaverseLogger.logOperation("solveChallenge", "Starting automatic challenge solution")
-
-        val goalMapResult = getGoalMap()
-
-        when (goalMapResult) {
-            is MegaverseResult.Success -> {
-                val map = goalMapResult.data
-
-                // Separate objects by type for ordered creation
-                val polyanetPositions = map.getPolyanetPositions()
-                val soloonsByColor = map.getSoloonPositions()
-                val comethsByDirection = map.getComethPositions()
-
-                val polyanets = polyanetPositions.toPolyanets()
-                val soloons =
-                    soloonsByColor.flatMap { (color, positions) -> positions.toSoloons(color) }
-                val comeths = comethsByDirection.flatMap { (direction, positions) ->
-                    positions.toComeths(direction)
-                }
-
-                val totalObjects = polyanets.size + soloons.size + comeths.size
-                var completedObjects = 0
-
-                MegaverseLogger.info("MegaverseSdk", "Found ${polyanets.size} polyanets to create")
-                MegaverseLogger.info("MegaverseSdk", "Found ${soloons.size} soloons to create")
-                MegaverseLogger.info("MegaverseSdk", "Found ${comeths.size} comeths to create")
-                MegaverseLogger.info("MegaverseSdk", "Total objects to create: $totalObjects")
-
-                emit(CreationProgress.InProgress(0, totalObjects))
-
-                // Phase 1: Create all POLYanets first
-                if (polyanets.isNotEmpty()) {
-                    MegaverseLogger.info(
-                        "MegaverseSdk",
-                        "Phase 1: Creating ${polyanets.size} POLYanets..."
-                    )
-
-                    repository.createAstralObjects(polyanets).collect { progress ->
-                        when (progress) {
-                            is CreationProgress.InProgress -> {
-                                emit(
-                                    CreationProgress.InProgress(
-                                        completedObjects + progress.completed,
-                                        totalObjects
-                                    )
-                                )
-                            }
-
-                            is CreationProgress.ObjectCreated -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.ObjectFailed -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.Completed -> {
-                                completedObjects += progress.successful
-                                MegaverseLogger.info(
-                                    "MegaverseSdk",
-                                    "Phase 1 complete: ${progress.successful} POLYanets created, ${progress.failed} failed"
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Phase 2: Create all SOLoons (now that POLYanets exist)
-                if (soloons.isNotEmpty()) {
-                    MegaverseLogger.info(
-                        "MegaverseSdk",
-                        "Phase 2: Creating ${soloons.size} SOLoons..."
-                    )
-
-                    repository.createAstralObjects(soloons).collect { progress ->
-                        when (progress) {
-                            is CreationProgress.InProgress -> {
-                                emit(
-                                    CreationProgress.InProgress(
-                                        completedObjects + progress.completed,
-                                        totalObjects
-                                    )
-                                )
-                            }
-
-                            is CreationProgress.ObjectCreated -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.ObjectFailed -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.Completed -> {
-                                completedObjects += progress.successful
-                                MegaverseLogger.info(
-                                    "MegaverseSdk",
-                                    "Phase 2 complete: ${progress.successful} SOLoons created, ${progress.failed} failed"
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Phase 3: Create all COMETHs (independent of other objects)
-                if (comeths.isNotEmpty()) {
-                    MegaverseLogger.info(
-                        "MegaverseSdk",
-                        "Phase 3: Creating ${comeths.size} COMETHs..."
-                    )
-
-                    repository.createAstralObjects(comeths).collect { progress ->
-                        when (progress) {
-                            is CreationProgress.InProgress -> {
-                                emit(
-                                    CreationProgress.InProgress(
-                                        completedObjects + progress.completed,
-                                        totalObjects
-                                    )
-                                )
-                            }
-
-                            is CreationProgress.ObjectCreated -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.ObjectFailed -> {
-                                emit(progress)
-                            }
-
-                            is CreationProgress.Completed -> {
-                                completedObjects += progress.successful
-                                MegaverseLogger.info(
-                                    "MegaverseSdk",
-                                    "Phase 3 complete: ${progress.successful} COMETHs created, ${progress.failed} failed"
-                                )
-                            }
-                        }
-                    }
-                }
-
-                val totalSuccessful = completedObjects
-                val totalFailed = totalObjects - completedObjects
-
-                MegaverseLogger.info(
-                    "MegaverseSdk",
-                    "Challenge solving completed! Total successful: $totalSuccessful, Total failed: $totalFailed"
-                )
-                emit(CreationProgress.Completed(totalSuccessful, totalFailed))
-            }
-
-            is MegaverseResult.Error -> {
-                MegaverseLogger.error(
-                    "MegaverseSdk",
-                    "Failed to get goal map for challenge solving",
-                    goalMapResult.exception
-                )
-                emit(CreationProgress.Completed(0, 1))
-            }
-        }
+    suspend fun solveChallenge(): Flow<CreationProgress> {
+        logger.logOperation("solveChallenge", "Starting automatic challenge solution")
+        return solveChallengeUseCase()
     }
 
     /**
@@ -422,7 +286,7 @@ class MegaverseSdk(
      * @return Flow emitting deletion progress
      */
     fun clearEntireMegaverse(width: Int, height: Int): Flow<DeletionProgress> {
-        MegaverseLogger.logOperation(
+        logger.logOperation(
             "clearEntireMegaverse",
             "Clearing entire ${width}x${height} megaverse"
         )
@@ -434,10 +298,10 @@ class MegaverseSdk(
             }
         }
 
-        MegaverseLogger.warn(
+        logger.warn(
             "MegaverseSdk",
             "This will attempt to clear ${allPositions.size} positions"
         )
-        return repository.clearPositions(allPositions)
+        return clearPositionsUseCase(allPositions)
     }
 }

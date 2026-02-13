@@ -1,3 +1,6 @@
+import org.jetbrains.dokka.DokkaConfiguration
+import org.jetbrains.dokka.gradle.DokkaTask
+
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.android.library)
@@ -7,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -28,9 +32,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.ui)
-            implementation(compose.foundation)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.foundation)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
@@ -40,6 +44,8 @@ kotlin {
             implementation(libs.ktor.serialization.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.multiplatformSettings)
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.core)
         }
 
         commonTest.dependencies {
@@ -48,6 +54,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
             implementation(libs.turbine)
+            implementation(libs.koin.test)
         }
 
         androidMain.dependencies {
@@ -174,6 +181,107 @@ kover {
             }
         }
     }
+}
+
+// Dokka configuration
+tasks.withType<DokkaTask>().configureEach {
+    moduleName.set("Crossmint Megaverse SDK")
+    
+    dokkaSourceSets {
+        configureEach {
+            // Include source links for GitHub
+            sourceLink {
+                localDirectory.set(projectDir.resolve("src"))
+                remoteUrl.set(uri("https://github.com/achulkov/crossmint-challenge/tree/main/crossmint-challenge-lib/src").toURL())
+                remoteLineSuffix.set("#L")
+            }
+            
+            // Include documentation for all platforms
+            includes.from("README.md", "Module.md")
+            
+            // Document internal APIs selectively
+            documentedVisibilities.set(
+                setOf(
+                    DokkaConfiguration.Visibility.PUBLIC,
+                    DokkaConfiguration.Visibility.PROTECTED
+                )
+            )
+            
+            // Add custom samples and snippets
+            samples.from("samples/")
+            
+            // Skip generated files
+            perPackageOption {
+                matchingRegex.set(".*\\.internal.*")
+                suppress.set(true)
+            }
+            
+            // External documentation links
+            externalDocumentationLink {
+                url.set(uri("https://kotlinlang.org/api/kotlinx.coroutines/").toURL())
+                packageListUrl.set(uri("https://kotlinlang.org/api/kotlinx.coroutines/package-list").toURL())
+            }
+            
+            externalDocumentationLink {
+                url.set(uri("https://kotlinlang.org/api/kotlinx.serialization/").toURL())
+                packageListUrl.set(uri("https://kotlinlang.org/api/kotlinx.serialization/package-list").toURL())
+            }
+            
+            externalDocumentationLink {
+                url.set(uri("https://api.ktor.io/").toURL())
+            }
+            
+            // Suppress warnings for missing documentation on obvious items
+            reportUndocumented.set(false)
+            skipEmptyPackages.set(true)
+            skipDeprecated.set(false)
+            
+            // JVM specific
+            jdkVersion.set(17)
+            
+            // Platform-specific configuration
+            platform.set(org.jetbrains.dokka.Platform.common)
+        }
+        
+        // Configure multiplatform source sets
+        named("commonMain") {
+            displayName.set("Common")
+        }
+        
+        named("androidMain") {
+            displayName.set("Android")
+            platform.set(org.jetbrains.dokka.Platform.jvm)
+        }
+        
+        named("jvmMain") {
+            displayName.set("JVM")
+            platform.set(org.jetbrains.dokka.Platform.jvm)
+        }
+        
+        named("iosMain") {
+            displayName.set("iOS")
+            platform.set(org.jetbrains.dokka.Platform.native)
+        }
+        
+        named("macosMain") {
+            displayName.set("macOS")
+            platform.set(org.jetbrains.dokka.Platform.native)
+        }
+    }
+    
+    // Output format configuration
+    pluginsMapConfiguration.set(
+        mapOf(
+            "org.jetbrains.dokka.base.DokkaBase" to """
+                {
+                    "customStyleSheets": [],
+                    "customAssets": [],
+                    "separateInheritedMembers": true,
+                    "footerMessage": "© 2025 Crossmint Megaverse SDK"
+                }
+            """.trimIndent()
+        )
+    )
 }
 
 // Publishing configuration

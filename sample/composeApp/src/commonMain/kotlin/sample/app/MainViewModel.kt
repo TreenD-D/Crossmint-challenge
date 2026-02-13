@@ -7,6 +7,8 @@ import com.achulkov.challenge.domain.Position
 import com.achulkov.challenge.repository.CreationProgress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * ViewModel for the main sample app screen.
@@ -14,9 +16,9 @@ import kotlinx.coroutines.launch
  */
 class MainViewModel(
     private val coroutineScope: CoroutineScope
-) {
+) : KoinComponent {
 
-    private val sdk = MegaverseSdk(enableDebugLogging = true)
+    private val sdk: MegaverseSdk by inject()
 
     // View State
     var candidateId by mutableStateOf("")

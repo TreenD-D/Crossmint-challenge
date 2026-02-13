@@ -1,10 +1,12 @@
 package com.achulkov.challenge.utils
 
+import com.achulkov.challenge.domain.interfaces.ILogger
+
 /**
  * Logging utility for the Megaverse SDK.
  * Logs are only shown in DEBUG builds to avoid noise in production.
  */
-object MegaverseLogger {
+object MegaverseLogger : ILogger {
 
     private var isDebugEnabled = false
 
@@ -14,7 +16,7 @@ object MegaverseLogger {
      *
      * @param enabled Whether to enable debug logging
      */
-    fun setDebugEnabled(enabled: Boolean) {
+    override fun setDebugEnabled(enabled: Boolean) {
         isDebugEnabled = enabled
     }
 
@@ -24,7 +26,7 @@ object MegaverseLogger {
      * @param tag The tag for the log message
      * @param message The message to log
      */
-    fun debug(tag: String, message: String) {
+    override fun debug(tag: String, message: String) {
         if (isDebugEnabled) {
             println("🔍 [DEBUG] $tag: $message")
         }
@@ -36,7 +38,7 @@ object MegaverseLogger {
      * @param tag The tag for the log message
      * @param message The message to log
      */
-    fun info(tag: String, message: String) {
+    override fun info(tag: String, message: String) {
         if (isDebugEnabled) {
             println("ℹ️ [INFO] $tag: $message")
         }
@@ -48,7 +50,7 @@ object MegaverseLogger {
      * @param tag The tag for the log message
      * @param message The message to log
      */
-    fun warn(tag: String, message: String) {
+    override fun warn(tag: String, message: String) {
         if (isDebugEnabled) {
             println("⚠️ [WARN] $tag: $message")
         }
@@ -61,7 +63,7 @@ object MegaverseLogger {
      * @param message The message to log
      * @param throwable Optional throwable for stack trace
      */
-    fun error(tag: String, message: String, throwable: Throwable? = null) {
+    override fun error(tag: String, message: String, throwable: Throwable?) {
         if (isDebugEnabled) {
             println("❌ [ERROR] $tag: $message")
             throwable?.let {
@@ -149,7 +151,7 @@ object MegaverseLogger {
      * @param operation The operation being performed
      * @param details Additional details about the operation
      */
-    fun logOperation(operation: String, details: String) {
+    override fun logOperation(operation: String, details: String) {
         if (isDebugEnabled) {
             println("⚙️ [OPERATION] $operation: $details")
         }
@@ -161,7 +163,7 @@ object MegaverseLogger {
      * @param key The configuration key that changed
      * @param value The new value (will be masked if sensitive)
      */
-    fun logConfig(key: String, value: String) {
+    override fun logConfig(key: String, value: String) {
         if (isDebugEnabled) {
             val maskedValue = if (key.contains("id", ignoreCase = true) ||
                 key.contains("key", ignoreCase = true) ||

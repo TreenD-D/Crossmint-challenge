@@ -1,5 +1,6 @@
 package com.achulkov.challenge.config
 
+import com.achulkov.challenge.domain.interfaces.IConfiguration
 import com.achulkov.challenge.utils.MegaverseLogger
 import com.russhwolf.settings.Settings
 
@@ -19,7 +20,7 @@ import com.russhwolf.settings.Settings
 open class MegaverseConfig(
     private val settings: Settings = Settings(),
     private val envConfig: EnvironmentConfig = EnvironmentConfig
-) {
+) : IConfiguration {
 
     companion object {
         private const val KEY_CANDIDATE_ID = "megaverse_candidate_id"
@@ -109,7 +110,7 @@ open class MegaverseConfig(
      *
      * @return The candidate ID, or null if not set
      */
-    fun getCandidateId(): String? {
+    override fun getCandidateId(): String? {
         // Check environment first
         val envCandidateId = envConfig.getCandidateId()
         if (envCandidateId != null) {
@@ -139,7 +140,7 @@ open class MegaverseConfig(
      * @param candidateId The candidate ID to use
      * @throws IllegalArgumentException if candidateId is blank
      */
-    fun setCandidateId(candidateId: String) {
+    override fun setCandidateId(candidateId: String) {
         require(candidateId.isNotBlank()) { "Candidate ID cannot be blank" }
 
         // Check if environment variable is set (it takes precedence)
@@ -177,7 +178,7 @@ open class MegaverseConfig(
      *
      * @return The base URL
      */
-    fun getBaseUrl(): String {
+    override fun getBaseUrl(): String {
         // Check environment first
         val envBaseUrl = envConfig.getBaseUrl()
         if (envBaseUrl != DEFAULT_BASE_URL) {
@@ -202,7 +203,7 @@ open class MegaverseConfig(
      * @param baseUrl The base URL to use
      * @throws IllegalArgumentException if baseUrl is blank
      */
-    fun setBaseUrl(baseUrl: String) {
+    override fun setBaseUrl(baseUrl: String) {
         require(baseUrl.isNotBlank()) { "Base URL cannot be blank" }
 
         // Check if environment variable is set (it takes precedence)
@@ -234,7 +235,7 @@ open class MegaverseConfig(
      *
      * @return true if debug logging is enabled
      */
-    fun isDebugLoggingEnabled(): Boolean {
+    override fun isDebugLoggingEnabled(): Boolean {
         return envConfig.isDebugLoggingEnabled()
     }
 
@@ -243,7 +244,7 @@ open class MegaverseConfig(
      *
      * @return The delay between requests in milliseconds
      */
-    fun getRequestDelayMs(): Long {
+    override fun getRequestDelayMs(): Long {
         return envConfig.getRequestDelayMs()
     }
 
@@ -252,7 +253,7 @@ open class MegaverseConfig(
      *
      * @return The maximum number of retries
      */
-    open fun getMaxRetries(): Int {
+    override fun getMaxRetries(): Int {
         return envConfig.getMaxRetries()
     }
 
@@ -261,7 +262,7 @@ open class MegaverseConfig(
      *
      * @return The base retry delay in milliseconds
      */
-    open fun getRetryBaseDelayMs(): Long {
+    override fun getRetryBaseDelayMs(): Long {
         return envConfig.getRetryBaseDelayMs()
     }
 
@@ -270,7 +271,7 @@ open class MegaverseConfig(
      *
      * @return The maximum requests per second
      */
-    open fun getRateLimitPerSecond(): Int {
+    override fun getRateLimitPerSecond(): Int {
         return envConfig.getRateLimitPerSecond()
     }
 
@@ -279,7 +280,7 @@ open class MegaverseConfig(
      *
      * Note: This does not affect environment variables.
      */
-    fun clear() {
+    override fun clear() {
         MegaverseLogger.warn("MegaverseConfig", "Clearing all persistent configuration settings")
         settings.clear()
         MegaverseLogger.info("MegaverseConfig", "All persistent configuration settings cleared")
@@ -290,7 +291,7 @@ open class MegaverseConfig(
      *
      * @throws IllegalStateException if candidate ID is not set
      */
-    fun validateConfiguration() {
+    override fun validateConfiguration() {
         val candidateId = getCandidateId()
 
         if (candidateId == null) {

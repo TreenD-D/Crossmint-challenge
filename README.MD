@@ -1,494 +1,622 @@
 # Crossmint Megaverse SDK
 
-[![CI](https://github.com/achulkov/crossmint-challenge/actions/workflows/ci.yml/badge.svg)](https://github.com/achulkov/crossmint-challenge/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/achulkov/crossmint-challenge/workflows/CI/badge.svg)](https://github.com/achulkov/crossmint-challenge/actions)
+[![Maven Central](https://img.shields.io/maven-central/v/com.achulkov.challenge/crossmint-challenge-lib.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.achulkov.challenge%22%20AND%20a:%22crossmint-challenge-lib%22)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Compose-1.10.0-blue.svg?logo=jetpack-compose)](https://www.jetbrains.com/lp/compose-multiplatform/)
 
-A production-grade, robust Kotlin Multiplatform library for interacting with the Crossmint Megaverse API. This SDK provides a clean, type-safe interface for creating and managing astral objects in the megaverse challenge.
+> A modern, production-ready Kotlin Multiplatform (KMP) library for interacting with the Crossmint Megaverse API.
 
-##  Features
+---
 
-- **🔐 Secure Credential Management**: Environment variable support for sensitive data
-- **🛡️ Resilience Patterns**: Exponential backoff, circuit breaker, and rate limiting
-- **📊 Progress Tracking**: Real-time feedback for bulk operations via Kotlin Flow
-- **🧪 Comprehensive Testing**: Full test coverage with unit and integration tests
-- **🔄 CI/CD Ready**: GitHub Actions workflows for automated testing and linting
-- **📱 Multiplatform**: Works on Android, iOS, JVM, macOS, and more
-- **🎯 Clean Architecture**: Repository pattern with clear separation of concerns
-- **📖 Type-Safe API**: Strongly typed domain models with validation
-- **🔍 Debug Logging**: Comprehensive logging for development and troubleshooting
+ [Features](#features) &bull;
+ [Setup](#setup) &bull;
+ [Usage](#usage) &bull;
+ [Architecture](#architecture) &bull;
+ [Documentation](#documentation) &bull;
+ [Contributing](#contributing) &bull;
+ [License](#license) 
 
-## 🏗️ Architecture
+---
 
-The SDK follows clean architecture principles with clear separation of concerns:
+## What's Included 🚀
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                        │
-│                    (SDK, Sample Apps, CLI)                         │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Repository Layer                          │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  MegaverseRepository                                    │    │
-│  │  • Business logic abstraction                           │    │
-│  │  • Resilience patterns (retry, circuit breaker)         │    │
-│  │  • Bulk operation orchestration                         │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  ResilientApiExecutor                                   │    │
-│  │  • Exponential backoff with jitter                        │    │
-│  │  • Circuit breaker pattern                                │    │
-│  │  • Token bucket rate limiting                             │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Data Layer                               │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  MegaverseApi (Network)                                 │    │
-│  │  • HTTP client abstraction                                │    │
-│  │  • Request/response serialization                         │    │
-│  │  • Error mapping                                          │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              │                                   │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  MegaverseConfig (Environment + Settings)                 │    │
-│  │  • Environment variable support                           │    │
-│  │  • Persistent settings storage                            │    │
-│  │  • Configuration validation                               │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       Domain Layer                               │
-│  • AstralObject (sealed class hierarchy)                         │
-│  • Polyanet, Soloon, Cometh (data classes)                       │
-│  • Position, MegaverseMap (value objects)                        │
-│  • MegaverseResult (result wrapper)                              │
-│  • MegaverseException (error hierarchy)                          │
-└─────────────────────────────────────────────────────────────────┘
-```
+- **🌐 Kotlin Multiplatform** - Supports Android, iOS, JVM, and macOS platforms
+- **🏗️ Clean Architecture** - Domain, Data, and Presentation layers following SOLID principles
+- **💉 Dependency Injection** - Koin DI for loose coupling and enhanced testability
+- **⚡ Reactive State Management** - StateFlow for real-time reactive updates
+- **🔒 Type-Safe API** - Strongly-typed models with comprehensive error handling
+- **🔄 Coroutines & Flow** - Modern async programming with Kotlin Flow
+- **🔁 Retry Logic** - Built-in exponential backoff and intelligent rate limiting
+- **🧪 Comprehensive Testing** - Unit tests with mocking support and high coverage
+- **📚 API Documentation** - Auto-generated Dokka documentation
+- **🎨 Sample Apps** - Compose Multiplatform sample application included
 
-## 📦 Installation
+## Features
 
-### GitHub Packages
+✅ **Multi-platform Support** - Single codebase for Android, iOS, JVM, and macOS  
+✅ **Goal Map Fetching** - Retrieve challenge goal maps from the API  
+✅ **Astral Object Creation** - Create Polyanets, Soloons, and Comeths with various attributes  
+✅ **Challenge Solver** - Automated challenge solving with progress tracking  
+✅ **State Management** - Reactive state updates via Kotlin StateFlow  
+✅ **Error Handling** - Robust error handling with detailed error types  
+✅ **Rate Limiting** - Automatic rate limiting to respect API constraints  
+✅ **Retry Mechanism** - Exponential backoff for failed requests  
+✅ **Debug Logging** - Comprehensive logging for development and debugging  
 
-This library is published to GitHub Packages on every push to `main` and on tagged releases.
+## Setup
 
-**Step 1:** Add the GitHub Packages repository to your `settings.gradle.kts`:
+### Using Gradle
+
+Choose the appropriate configuration based on your project type:
+
+#### Multiplatform Projects
+
+For Kotlin Multiplatform projects, add the dependency to your `build.gradle.kts`:
 
 ```kotlin
-dependencyResolutionManagement {
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/achulkov/crossmint-challenge")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0")
         }
-        mavenCentral()
-        google()
     }
 }
 ```
 
-**Step 2:** Add your GitHub credentials to `~/.gradle/gradle.properties`:
+#### Android-Only Projects
 
-```properties
-gpr.user=your-github-username
-gpr.token=your-github-personal-access-token
-```
-
-> **Note:** Generate a GitHub Personal Access Token with `read:packages` scope at:
-> https://github.com/settings/tokens
-
-**Step 3:** Add the library dependency to your `build.gradle.kts`:
+For Android-only projects:
 
 ```kotlin
 dependencies {
-    // For release versions (when tagged as v1.0.0, v1.0.1, etc.)
-    implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0")
-    
-    // For snapshot versions (latest from main branch)
-    implementation("com.achulkov.challenge:crossmint-challenge-lib:1.0.0-SNAPSHOT")
+    implementation("com.achulkov.challenge:crossmint-challenge-lib-android:1.0.0")
 }
 ```
 
-### Maven Central (Planned)
+#### JVM-Only Projects
 
-Publishing to Maven Central is configured and will be available in future releases.
-
-## 🚀 Quick Start
-
-### Environment-Based Setup
-
-```bash
-# Set environment variables
-export MEGAVERSE_CANDIDATE_ID="your-candidate-id-here"
-export MEGAVERSE_DEBUG_LOGGING="true"
-export MEGAVERSE_MAX_RETRIES="3"
-```
+For JVM (Desktop/Server) projects:
 
 ```kotlin
-import com.achulkov.challenge.MegaverseSdk
+dependencies {
+    implementation("com.achulkov.challenge:crossmint-challenge-lib-jvm:1.0.0")
+}
+```
+
+### Version Catalog
+
+If using Gradle version catalogs, add to `gradle/libs.versions.toml`:
+
+```toml
+[versions]
+crossmint-megaverse = "1.0.0"
+koin = "4.1.1"
+
+[libraries]
+crossmint-megaverse = { module = "com.achulkov.challenge:crossmint-challenge-lib", version.ref = "crossmint-megaverse" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+```
+
+Then in your `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation(libs.crossmint.megaverse)
+    implementation(libs.koin.core)
+}
+```
+
+## Usage
+
+### Quick Start
+
+#### 1. Initialize Koin
+
+```kotlin
+import com.achulkov.challenge.di.KoinInitializer
 import com.achulkov.challenge.config.MegaverseConfig
 
-// Initialize SDK from environment variables (most secure)
-val sdk = MegaverseSdk(config = MegaverseConfig.fromEnvironment())
+// Option 1: With custom configuration
+val config = MegaverseConfig().apply {
+    setCandidateId("your-candidate-id")
+    setDebugLogging(true)
+}
+KoinInitializer.init(config)
+
+// Option 2: With environment variables
+val config = MegaverseConfig.fromEnvironment()
+KoinInitializer.init(config)
+
+// Option 3: With default configuration
+KoinInitializer.init()
 ```
 
-### Programmatic Setup
+#### 2. Get SDK Instance
 
 ```kotlin
 import com.achulkov.challenge.MegaverseSdk
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-// Initialize and configure programmatically
-val sdk = MegaverseSdk(enableDebugLogging = true)
-sdk.setCandidateId("your-candidate-id-here")
+object AppComponent : KoinComponent {
+    val sdk: MegaverseSdk by inject()
+}
+
+val sdk = AppComponent.sdk
 ```
 
-### Running the JVM Sample
-
-```bash
-# With environment variables
-export MEGAVERSE_CANDIDATE_ID="your-candidate-id"
-export MEGAVERSE_DEBUG_LOGGING="true"
-./gradlew :crossmint-challenge-lib:jvmRun
-
-# With system properties
-./gradlew :crossmint-challenge-lib:jvmRun \
-  -Dmegaverse.candidate.id="your-candidate-id" \
-  -Dmegaverse.debug.logging="true"
-```
-
-## 🌍 Environment Variables
-
-The SDK supports the following environment variables for secure, production-ready configuration:
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `MEGAVERSE_CANDIDATE_ID` | Your unique candidate identifier | - | **Yes** |
-| `MEGAVERSE_BASE_URL` | API base URL | `https://challenge.crossmint.io/api` | No |
-| `MEGAVERSE_DEBUG_LOGGING` | Enable debug logging | `false` | No |
-| `MEGAVERSE_REQUEST_DELAY_MS` | Delay between requests | `500` | No |
-| `MEGAVERSE_MAX_RETRIES` | Maximum retry attempts | `3` | No |
-| `MEGAVERSE_RETRY_BASE_DELAY_MS` | Base delay for exponential backoff | `1000` | No |
-| `MEGAVERSE_RATE_LIMIT_PER_SECOND` | Rate limit (requests/second) | `2` | No |
-
-### Platform-Specific Notes
-
-**JVM/Desktop:**
-```bash
-export MEGAVERSE_CANDIDATE_ID="your-id"
-java -jar your-app.jar
-```
-
-**Android:**
-Set environment variables in your CI/CD pipeline or use `local.properties`:
-```properties
-MEGAVERSE_CANDIDATE_ID=your-id
-```
-
-**iOS/macOS:**
-Set in your scheme's environment variables or use `ProcessInfo`:
-```swift
-setenv("MEGAVERSE_CANDIDATE_ID", "your-id", 1)
-```
-
-## 📖 Usage Examples
-
-### Complete Challenge Solution
+#### 3. Use the SDK
 
 ```kotlin
-import com.achulkov.challenge.MegaverseSdk
-import com.achulkov.challenge.config.MegaverseConfig
 import com.achulkov.challenge.repository.CreationProgress
 import kotlinx.coroutines.flow.collect
 
-suspend fun solveChallenge() {
-    // Use environment-based configuration
-    val sdk = MegaverseSdk(config = MegaverseConfig.fromEnvironment())
+// Configure candidate ID if not set during initialization
+sdk.setCandidateId("your-candidate-id")
 
-    sdk.solveChallenge().collect { progress ->
-        when (progress) {
-            is CreationProgress.InProgress -> {
-                println("Progress: ${progress.completed}/${progress.total}")
-            }
-            is CreationProgress.ObjectCreated -> {
-                val obj = progress.astralObject
-                println("✅ Created ${obj::class.simpleName} at ${obj.position}")
-            }
-            is CreationProgress.ObjectFailed -> {
-                println("❌ Failed: ${progress.error.message}")
-            }
-            is CreationProgress.Completed -> {
-                println("🎉 Complete! ${progress.successful} successful")
-            }
+// Solve the challenge with progress tracking
+sdk.solveChallenge().collect { progress ->
+    when (progress) {
+        is CreationProgress.InProgress -> {
+            println("Progress: ${progress.completed}/${progress.total}")
+        }
+        is CreationProgress.ObjectCreated -> {
+            println("✅ Created: ${progress.astralObject}")
+        }
+        is CreationProgress.ObjectFailed -> {
+            println("❌ Failed: ${progress.astralObject}")
+        }
+        is CreationProgress.Completed -> {
+            println("🎉 Challenge completed! Success: ${progress.successful}, Failed: ${progress.failed}")
         }
     }
 }
 ```
 
-### Phase 1: X-Pattern Challenge
+### Advanced Usage
 
-```kotlin
-// Create the X-pattern for Phase 1 (11x11 grid)
-sdk.createXPatternChallenge(11).collect { progress ->
-    when (progress) {
-        is CreationProgress.InProgress -> 
-            println("Progress: ${progress.completed}/${progress.total}")
-        is CreationProgress.Completed -> 
-            println("🎉 X-Pattern complete! ${progress.successful} created")
-        else -> {}
-    }
-}
-```
-
-### Individual Object Operations
+#### Creating Individual Astral Objects
 
 ```kotlin
 import com.achulkov.challenge.domain.*
 
-// Create a single polyanet
-val result = sdk.createPolyanet(Position(5, 5))
-when (result) {
-    is MegaverseResult.Success -> println("Polyanet created!")
-    is MegaverseResult.Error -> println("Error: ${result.exception.message}")
+// Create a Polyanet
+val result = sdk.createPolyanet(row = 5, column = 5)
+result.onSuccess { 
+    println("Polyanet created successfully")
 }
 
-// Create a soloon with color
-sdk.createSoloon(Position(3, 3), SoloonColor.BLUE)
+// Create a Soloon with color
+sdk.createSoloon(row = 5, column = 6, color = "blue")
 
-// Create a cometh with direction  
-sdk.createCometh(Position(7, 2), ComethDirection.UP)
+// Create a Cometh with direction
+sdk.createCometh(row = 5, column = 7, direction = "right")
 ```
 
-## 🛡️ Resilience Patterns
+#### Batch Operations with Progress Tracking
 
-The SDK implements several resilience patterns at the repository layer:
+```kotlin
+val objects = listOf(
+    AstralObject.Polyanet(Position(5, 5)),
+    AstralObject.Soloon(Position(5, 6), "blue"),
+    AstralObject.Cometh(Position(5, 7), "right")
+)
 
-### Exponential Backoff with Jitter
+sdk.createAstralObjects(objects).collect { progress ->
+    when (progress) {
+        is CreationProgress.InProgress -> {
+            val percentage = (progress.completed * 100) / progress.total
+            println("Progress: $percentage%")
+        }
+        is CreationProgress.Completed -> {
+            println("All operations completed!")
+        }
+    }
+}
+```
+
+#### Reactive State Management
+
+```kotlin
+import com.achulkov.challenge.domain.state.MegaverseStateManager
+import org.koin.core.component.inject
+
+val stateManager: MegaverseStateManager by inject()
+
+// Observe state changes
+stateManager.state.collect { state ->
+    when (state) {
+        is MegaverseState.Idle -> println("Ready")
+        is MegaverseState.Loading -> println("Loading...")
+        is MegaverseState.Success -> println("Success: ${state.data}")
+        is MegaverseState.Error -> println("Error: ${state.message}")
+    }
+}
+```
+
+#### Clearing the Megaverse
+
+```kotlin
+sdk.clearMegaverse(mapSize = 11).collect { progress ->
+    when (progress) {
+        is DeletionProgress.InProgress -> {
+            println("Clearing: ${progress.completed}/${progress.total}")
+        }
+        is DeletionProgress.Completed -> {
+            println("Megaverse cleared!")
+        }
+    }
+}
+```
+
+## Platform-Specific Setup
+
+### Android
+
+```kotlin
+// In your Application class
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        
+        val config = MegaverseConfig().apply {
+            setCandidateId(BuildConfig.CANDIDATE_ID)
+            setDebugLogging(BuildConfig.DEBUG)
+        }
+        KoinInitializer.init(config)
+    }
+}
+```
+
+### iOS
+
+```swift
+import crossmint_challenge_lib
+
+// In your App or AppDelegate
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+    ) -> Bool {
+        let config = MegaverseConfig()
+        config.setCandidateId(candidateId: "your-candidate-id")
+        config.setDebugLogging(enabled: true)
+        KoinInitializerKt.init(config: config, appDeclaration: nil)
+        
+        return true
+    }
+}
+```
+
+### JVM (Desktop/Server)
+
+```kotlin
+// In your main function
+fun main() = runBlocking {
+    // Initialize from environment variables
+    val config = MegaverseConfig.fromEnvironment()
+    KoinInitializer.init(config)
+    
+    val sdkComponent = object : KoinComponent {}
+    val sdk: MegaverseSdk by sdkComponent.inject()
+    
+    // Solve the challenge
+    sdk.solveChallenge().collect { progress ->
+        // Handle progress updates
+    }
+}
+```
+
+### macOS
+
+```kotlin
+fun main() {
+    val config = MegaverseConfig.fromEnvironment()
+    KoinInitializer.init(config)
+    
+    // Same as JVM usage
+}
+```
+
+## Architecture
+
+The SDK follows **Clean Architecture** principles with clear separation of concerns:
 
 ```
-Retry 1: baseDelay * 2^0 + jitter = ~1000ms
-Retry 2: baseDelay * 2^1 + jitter = ~2000ms
-Retry 3: baseDelay * 2^2 + jitter = ~4000ms
+┌─────────────────────────────────────────────┐
+│         Presentation Layer                  │
+│  • MegaverseSdk (Public API Facade)        │
+│  • Platform-specific integrations           │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Domain Layer                        │
+│  • Use Cases (Business Logic)               │
+│    - SolveChallengeUseCase                  │
+│    - CreateAstralObjectsUseCase             │
+│    - GetGoalMapUseCase                      │
+│    - ClearPositionsUseCase                  │
+│  • Domain Models                            │
+│  • Repository Interfaces                    │
+│  • State Management                         │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Data Layer                          │
+│  • Repository Implementation                │
+│  • Remote Data Sources                      │
+│  • API Implementation (Ktor)                │
+│  • Response/Request Models                  │
+│  • Error Handling & Retry Logic             │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Infrastructure                      │
+│  • Dependency Injection (Koin)              │
+│  • Configuration Management                 │
+│  • Logging & Monitoring                     │
+│  • Platform-specific implementations        │
+└─────────────────────────────────────────────┘
 ```
 
-Configurable via environment:
+### Key Components
+
+- **Use Cases**: Encapsulate business logic for specific operations
+  - `SolveChallengeUseCase` - Orchestrates the complete challenge solution
+  - `CreateAstralObjectsUseCase` - Handles batch creation with retries
+  - `GetGoalMapUseCase` - Fetches and parses goal maps
+  - `ClearPositionsUseCase` - Clears astral objects from positions
+
+- **Repository**: `MegaverseRepository` - Abstracts data operations and provides a clean API
+- **State Manager**: `MegaverseStateManager` - Manages reactive state with StateFlow
+- **Configuration**: `MegaverseConfig` - Centralized configuration with platform-specific overrides
+- **Resilient Executor**: `ResilientApiExecutor` - Handles retries, rate limiting, and error recovery
+
+## API Reference
+
+### MegaverseSdk
+
+The main entry point for all SDK operations.
+
+#### Configuration Methods
+
+```kotlin
+// Set candidate ID
+sdk.setCandidateId("your-id")
+
+// Get candidate ID
+val id = sdk.getCandidateId(): String
+
+// Enable/disable debug logging
+sdk.setDebugLogging(true)
+```
+
+#### Challenge Methods
+
+```kotlin
+// Solve the full challenge (Phase 2) - fetches goal map and creates all objects
+sdk.solveChallenge(): Flow<CreationProgress>
+
+// Create X-pattern (Phase 1) - legacy method
+sdk.createXPatternChallenge(gridSize: Int): Flow<CreationProgress>
+
+// Get goal map from API
+sdk.getGoalMap(): Result<GoalMap>
+
+// Clear the entire megaverse
+sdk.clearMegaverse(mapSize: Int): Flow<DeletionProgress>
+```
+
+#### Object Creation Methods
+
+```kotlin
+// Create a single Polyanet
+sdk.createPolyanet(row: Int, column: Int): Result<Boolean>
+
+// Create a single Soloon with color attribute
+sdk.createSoloon(row: Int, column: Int, color: String): Result<Boolean>
+
+// Create a single Cometh with direction attribute
+sdk.createCometh(row: Int, column: Int, direction: String): Result<Boolean>
+
+// Create multiple objects with progress tracking
+sdk.createAstralObjects(objects: List<AstralObject>): Flow<CreationProgress>
+```
+
+#### Object Deletion Methods
+
+```kotlin
+// Delete a single Polyanet
+sdk.deletePolyanet(row: Int, column: Int): Result<Boolean>
+
+// Delete a single Soloon
+sdk.deleteSoloon(row: Int, column: Int): Result<Boolean>
+
+// Delete a single Cometh
+sdk.deleteCometh(row: Int, column: Int): Result<Boolean>
+```
+
+### Progress Types
+
+```kotlin
+sealed class CreationProgress {
+    data class InProgress(val completed: Int, val total: Int) : CreationProgress()
+    data class ObjectCreated(val astralObject: AstralObject) : CreationProgress()
+    data class ObjectFailed(val astralObject: AstralObject, val error: Throwable) : CreationProgress()
+    data class Completed(val successful: Int, val failed: Int) : CreationProgress()
+}
+
+sealed class DeletionProgress {
+    data class InProgress(val completed: Int, val total: Int) : DeletionProgress()
+    data class Completed(val successful: Int, val failed: Int) : DeletionProgress()
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+The SDK supports configuration via environment variables:
+
 ```bash
-export MEGAVERSE_MAX_RETRIES=5
-export MEGAVERSE_RETRY_BASE_DELAY_MS=2000
+# Required
+export MEGAVERSE_CANDIDATE_ID="your-candidate-id"
+
+# Optional - API Configuration
+export MEGAVERSE_BASE_URL="https://challenge.crossmint.io/api"
+export MEGAVERSE_DEBUG_LOGGING="true"
+
+# Optional - Rate Limiting
+export MEGAVERSE_REQUEST_DELAY_MS="500"
+export MEGAVERSE_RATE_LIMIT_PER_SECOND="2"
+
+# Optional - Retry Configuration
+export MEGAVERSE_MAX_RETRIES="3"
+export MEGAVERSE_RETRY_BASE_DELAY_MS="1000"
+export MEGAVERSE_RETRY_MAX_DELAY_MS="10000"
 ```
 
-### Circuit Breaker
+### Programmatic Configuration
 
-The circuit breaker prevents cascading failures:
-- **CLOSED**: Normal operation
-- **OPEN**: Blocks requests after 5 consecutive failures
-- **HALF_OPEN**: Allows limited requests to test recovery
-
-```bash
-export MEGAVERSE_RATE_LIMIT_PER_SECOND=2  # Prevents rate limiting
+```kotlin
+val config = MegaverseConfig().apply {
+    setCandidateId("your-id")
+    setDebugLogging(true)
+    setBaseUrl("https://challenge.crossmint.io/api")
+    setRequestDelayMs(500)
+    setMaxRetries(3)
+}
 ```
 
-### Rate Limiting
+## Testing
 
-Token bucket algorithm ensures you stay within API limits:
-```bash
-export MEGAVERSE_RATE_LIMIT_PER_SECOND=2  # 2 requests per second max
+### Unit Tests
+
+The SDK includes comprehensive unit tests with mocking support:
+
+```kotlin
+import org.koin.test.KoinTest
+import org.koin.test.inject
+import org.koin.dsl.module
+import io.mockk.mockk
+
+class MyViewModelTest : KoinTest {
+    @Test
+    fun testSolveChallenge() = runBlocking {
+        // Arrange
+        val mockRepository = mockk<MegaverseRepository>(relaxed = true)
+        
+        startKoin {
+            modules(module {
+                single { mockRepository }
+                single { mockk<IConfiguration>(relaxed = true) }
+                single { mockk<ILogger>(relaxed = true) }
+                // ... other dependencies
+            })
+        }
+        
+        val sdk: MegaverseSdk by inject()
+        
+        // Act & Assert
+        // ... test implementation
+    }
+}
 ```
 
-## 🧪 Testing
-
-**Test Suite: 84 tests - ALL PASSING** ✅
-
-Run the comprehensive test suite:
+### Running Tests
 
 ```bash
 # Run all tests
 ./gradlew test
 
-# Run tests with coverage (HTML report)
-./gradlew koverHtmlReport
+# Run tests for specific platform
+./gradlew jvmTest
+./gradlew iosX64Test
 
-# Run specific test suites
-./gradlew :crossmint-challenge-lib:commonTest
-./gradlew :crossmint-challenge-lib:jvmTest
-./gradlew :crossmint-challenge-lib:testDebugUnitTest  # Android unit tests
-
-# Note: Android instrumented tests not yet configured
-# (requires androidTest dependencies)
+# Run tests with coverage report
+./gradlew koverXmlReport
 ```
 
-View coverage report:
-```bash
-open crossmint-challenge-lib/build/reports/kover/html/index.html
-```
+See [TESTING.md](./TESTING.md) for detailed testing strategies and examples.
 
-📊 **Detailed Test Coverage**: See [TEST_COVERAGE.md](TEST_COVERAGE.md) for comprehensive test documentation.
+## Documentation
 
-### Test Structure
+- **[API Documentation](https://achulkov.github.io/crossmint-challenge/)** - Auto-generated Dokka API docs
+- **[TESTING.md](./TESTING.md)** - Testing strategies and examples
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
 
-```
-src/commonTest/                        # 84 tests
-├── domain/
-│   ├── AstralObjectTest.kt          # Domain model tests (15 tests)
-│   ├── MegaverseMapTest.kt          # Map parsing tests (12 tests)
-│   └── MegaverseResultTest.kt        # Result wrapper tests (17 tests)
-├── extensions/
-│   └── MegaverseExtensionsTest.kt    # Pattern generation tests (24 tests)
-└── MegaverseSdkTest.kt              # SDK integration tests (16 tests)
+## Sample Application
 
-# Note: androidInstrumentedTest not yet configured
-```
-
-### Test Coverage by Module
-
-- ✅ **Domain Models**: 100% coverage
-- ✅ **Extensions/Utilities**: 100% coverage  
-- ✅ **SDK Operations**: Full coverage with Android exception handling
-- ⚠️ **Repository/Network**: Integration tests pending (mock API needed)
-
-## 🔧 Code Quality
-
-The project uses Detekt for code quality:
+A complete Compose Multiplatform sample application is included in the `sample/` directory:
 
 ```bash
-# Run Detekt analysis
-./gradlew detekt
+# Run Android sample
+./gradlew :sample:composeApp:installDebug
+
+# Run Desktop sample
+./gradlew :sample:composeApp:run
+
+# Run iOS sample (requires Xcode)
+cd sample/iosApp && xcodebuild -scheme iosApp -configuration Debug
 ```
 
-Configuration is in `detekt.yml` at the project root.
+## Dependencies
 
-## 🔄 CI/CD
+This library uses the following key dependencies:
 
-GitHub Actions workflows are configured for:
+- [Kotlin](https://kotlinlang.org/) - Kotlin language and standard library
+- [Kotlin Coroutines](https://github.com/Kotlin/kotlinx.coroutines) - Asynchronous programming
+- [Kotlinx Serialization](https://github.com/Kotlin/kotlinx.serialization) - JSON serialization
+- [Ktor Client](https://ktor.io/) - HTTP client for API communication
+- [Koin](https://insert-koin.io/) - Dependency injection framework
+- [Multiplatform Settings](https://github.com/russhwolf/multiplatform-settings) - Platform-agnostic settings storage
+- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/) - UI framework (for sample app)
 
-- **Continuous Integration**: Runs on every push and PR
-  - **Code Quality**: Detekt static analysis with report artifacts
-  - **Unit Tests**: Tests across multiple API levels (21, 29, 34) with JUnit reports
-  - **Coverage**: Kover code coverage with Codecov integration
-  - **Build Verification**: Validates library and sample app builds
-  - **Documentation**: Auto-generates Dokka HTML documentation
+## Requirements
 
-- **Publishing to GitHub Packages**: Automatic on push to `main`
-  - **Snapshot versions** (`1.0.0-SNAPSHOT`) published on every push to `main`
-  - **Release versions** (e.g., `1.0.0`) published when tagged with `v*` tags
-  - Artifacts include JARs and AARs for all supported platforms
-  - Release artifacts automatically uploaded for tagged releases
+- Kotlin 2.3.10 or higher
+- Gradle 8.13 or higher
+- JDK 17 or higher
 
-- **Future**: Publishing to Maven Central is configured and ready
+### Platform-Specific Requirements
 
-### Creating a Release
+- **Android**: Min SDK 23 (Android 6.0)
+- **iOS**: iOS 14.0+
+- **JVM**: Java 17+
+- **macOS**: macOS 11.0+
 
-To publish a new release version:
+## Contributing
 
-```bash
-# Create and push a version tag
-git tag v1.0.0
-git push origin v1.0.0
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on:
+
+- How to submit issues and feature requests
+- Development setup and workflow
+- Code style guidelines
+- Pull request process
+
+## License
+
+```
+Copyright 2025 Andrei Chulkov
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
 
-The CI will automatically:
-1. Build and test the library
-2. Publish to GitHub Packages with the version from the tag
-3. Create release artifacts (JARs, AARs)
-4. Upload artifacts to the GitHub Actions run
-
-See `.github/workflows/ci.yml` for complete CI/CD configuration.
-
-## 🏛️ Design Principles
-
-### Clean Architecture
-
-- **Separation of Concerns**: Clear boundaries between layers
-- **Dependency Inversion**: Abstractions don't depend on details
-- **Repository Pattern**: Clean data access abstraction
-- **Result Pattern**: Explicit error handling without exceptions
-
-### Resilience
-
-- **Exponential Backoff**: Prevents thundering herd
-- **Circuit Breaker**: Protects against cascading failures
-- **Rate Limiting**: Respects API limits
-- **Comprehensive Error Handling**: Specific exception types
-
-### Scalability
-
-- **Flow-based Operations**: Reactive, cancellable streams
-- **Bulk Operation Support**: Efficient batch processing
-- **Extension Functions**: Easy to add new patterns
-- **Multiplatform**: Works across all Kotlin targets
-
-## 📚 API Reference
-
-### MegaverseSdk
-
-Main entry point for all operations:
-
-| Method | Description |
-|--------|-------------|
-| `createPolyanet(position)` | Create a single polyanet |
-| `createSoloon(position, color)` | Create a colored soloon |
-| `createCometh(position, direction)` | Create a directional cometh |
-| `createAstralObjects(objects)` | Bulk create with progress |
-| `clearPositions(positions)` | Bulk delete with progress |
-| `createXPatternChallenge(size)` | Phase 1 helper |
-| `solveChallenge()` | Complete auto-solution |
-| `getGoalMap()` | Fetch target configuration |
-
-### Domain Models
-
-```kotlin
-// Position (validated, non-negative)
-val position = Position(row = 2, column = 5)
-
-// Astral Objects
-val polyanet = Polyanet(position)
-val soloon = Soloon(position, SoloonColor.PURPLE)
-val cometh = Cometh(position, ComethDirection.LEFT)
-
-// Colors
-enum class SoloonColor { BLUE, RED, PURPLE, WHITE }
-
-// Directions
-enum class ComethDirection { UP, DOWN, LEFT, RIGHT }
-```
-
-## 📝 Logging
-
-The SDK includes comprehensive logging:
-
-```kotlin
-// Enable debug logging
-val sdk = MegaverseSdk(enableDebugLogging = true)
-
-// Or via environment
-export MEGAVERSE_DEBUG_LOGGING=true
-```
-
-Log output includes:
-- Network requests and responses
-- Retry attempts with delays
-- Circuit breaker state changes
-- Rate limiting events
-- Object creation progress
-
-
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+See [LICENSE](./LICENSE) for the full license text.
 
 ---
 
-**Built for the Crossmint Megaverse Challenge**
+**Questions or Issues?** Please file an issue on [GitHub](https://github.com/achulkov/crossmint-challenge/issues).

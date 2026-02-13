@@ -1,8 +1,11 @@
 package com.achulkov.challenge
 
 import com.achulkov.challenge.config.MegaverseConfig
+import com.achulkov.challenge.di.KoinInitializer
 import com.achulkov.challenge.repository.CreationProgress
 import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * JVM entry point for running the Crossmint Megaverse Challenge.
@@ -31,9 +34,9 @@ fun main(args: Array<String>) = runBlocking {
     println("🚀 Crossmint Megaverse Challenge - JVM Runner")
     println("=".repeat(60))
 
-    // Initialize SDK with environment-based configuration
-    val sdk = try {
-        MegaverseSdk(config = MegaverseConfig.fromEnvironment())
+    // Initialize configuration from environment
+    val config = try {
+        MegaverseConfig.fromEnvironment()
     } catch (e: IllegalStateException) {
         println("\n❌ Configuration Error: ${e.message}")
         println("\nPlease set the required environment variable:")
@@ -50,10 +53,12 @@ fun main(args: Array<String>) = runBlocking {
         return@runBlocking
     }
 
-    // Enable debug logging if configured
-    if (sdk.getCandidateId()?.isNotBlank() == true) {
-        sdk.setDebugLogging(true)
-    }
+    // Initialize Koin with the config from environment
+    KoinInitializer.init(config)
+
+    // Get SDK instance from Koin
+    val sdkComponent = object : KoinComponent {}
+    val sdk: MegaverseSdk by sdkComponent.inject()
 
     println("\n📋 Configuration:")
     println("  Candidate ID: ${sdk.getCandidateId()?.take(8)?.plus("****") ?: "Not set"}")
@@ -119,14 +124,21 @@ fun mainXPattern(args: Array<String>) = runBlocking {
     println("🚀 Crossmint Megaverse Challenge - Phase 1: X-Pattern")
     println("=".repeat(60))
 
-    val sdk = try {
-        MegaverseSdk(config = MegaverseConfig.fromEnvironment())
+    val config = try {
+        MegaverseConfig.fromEnvironment()
     } catch (e: IllegalStateException) {
         println("\n❌ ${e.message}")
         println("\nSet MEGAVERSE_CANDIDATE_ID environment variable.")
         return@runBlocking
     }
 
+    // Initialize Koin with the config from environment
+    KoinInitializer.init(config)
+
+    // Get SDK instance from Koin
+    val sdkComponent = object : KoinComponent {}
+    val sdk: MegaverseSdk by sdkComponent.inject()
+    
     sdk.setDebugLogging(true)
 
     println("\n📍 Creating X-pattern (11x11 grid)...")
