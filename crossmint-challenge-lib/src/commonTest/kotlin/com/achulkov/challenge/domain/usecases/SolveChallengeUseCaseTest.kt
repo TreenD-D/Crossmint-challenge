@@ -190,7 +190,7 @@ class SolveChallengeUseCaseTest {
     }
 
     @Test
-    fun `should create objects in correct order - polyanets first, then soloons, then comeths`() = runTest {
+    fun `should create objects in correct order - polyanets first then soloons then comeths`() = runTest {
         // Arrange
         val goalMap = createGoalMapWithAllTypes()
         mockRepository.setGoalMapResult(MegaverseResult.Success(goalMap))

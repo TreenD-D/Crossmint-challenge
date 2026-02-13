@@ -53,40 +53,6 @@ jobs:
           path: '**/build/reports/detekt/'
           retention-days: 7
 
-  # Unit tests - Common Module
-  test-common:
-    name: Common Module Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Run Common Tests
-        run: ./gradlew :crossmint-challenge-lib:allTests --info
-
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-common
-          path: '**/build/test-results/**/*.xml'
-          retention-days: 7
-
   # Unit tests - JVM
   test-jvm:
     name: JVM Tests
@@ -111,7 +77,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run JVM Tests
-        run: ./gradlew :crossmint-challenge-lib:jvmTest --info
+        run: ./gradlew :crossmint-challenge-lib:jvmTest :crossmint-challenge-lib:test --info
 
       - name: Upload JVM Test Reports
         if: always()
@@ -193,7 +159,7 @@ jobs:
   build:
     name: Build All Targets
     runs-on: ${{ matrix.os }}
-    needs: [lint, test-common]
+    needs: [lint, test-jvm]
     strategy:
       fail-fast: false
       matrix:
