@@ -49,7 +49,7 @@ koin-test = { module = "io.insert-koin:koin-test" }
 # Testing
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-turbine = { module = "app.cash.turbine:turbine", version = "1.1.0" }
+turbine = { module = "app.cash.turbine:turbine", version = "1.2.1" }
 
 # Code Quality
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
