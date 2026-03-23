@@ -13,7 +13,7 @@ androidx-activityCompose = "1.12.4"
 detekt = "1.23.8"
 kover = "0.9.7"
 dokka = "2.0.0"
-koin-bom = "4.1.1"
+koin-bom = "4.2.0"
 
 [libraries]
 
